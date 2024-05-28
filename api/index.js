@@ -1,6 +1,19 @@
+// Load environment variables from .env file
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 const app = express();
-const port = 3000;
+const port = process.env.PORT;
+import mongoose from 'mongoose';
+mongoose.connect('mongodb://localhost:27017/socialMediaBackend')
+.then(()=>{console.log("Connected to mongoDB")})
+.catch((error)=>{console.log(" Error connecting to mongoDB", error)})
+
+
+
+
+
 
 // Define a route handler for the default home page
 app.get('/', (req, res) => {
