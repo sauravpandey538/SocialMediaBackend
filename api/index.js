@@ -5,6 +5,7 @@ dotenv.config();
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import User from "../model/user.model.js"
+import upload from '../middleware/multer.js';
 
 const app = express();
 const port = process.env.PORT;
@@ -16,7 +17,8 @@ mongoose.connect('mongodb://localhost:27017/socialMediaBackend')
 
 app.use(express.json())
 app.use(cookieParser())
-
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('./uploads'));
 
 // Define a route handler for the default home page
 app.get('/', (req, res) => {
@@ -91,6 +93,27 @@ app.post('/bio',verifyAccessToken, async(req,res)=>{
   }
 
 });  // working
+app.post('/profileimage',verifyAccessToken, upload.single('profileImage'), async (req, res) => {
+    try {
+        // Find the user by ID (assuming you're using some form of authentication middleware)
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        // Update the user's profileImage field with the filename of the uploaded file
+        user.UserImage = req.file.filename;
+
+        // Save the updated user object
+        await user.save();
+
+        return res.status(200).json({ message: 'Profile picture uploaded successfully', user });
+    } catch (error) {
+        console.error('Error uploading profile picture:', error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+}); // needs to be upgraded later
+
+
 
 
 
