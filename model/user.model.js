@@ -13,7 +13,7 @@ const userSchema = new Schema({
         type:String,
         require:true
     },
-    UserImage: {type:String, default:""},
+    profileImage: {type:String, default:""},
     coverImage: {type:String, default:""},
     bio:{type:String, default:""},
     following:[{

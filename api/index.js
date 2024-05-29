@@ -6,11 +6,11 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import User from "../model/user.model.js"
 import upload from '../middleware/multer.js';
-
+import uploadCloudinary from "../utilities/cloudinary.js"
 const app = express();
 const port = process.env.PORT;
 import mongoose from 'mongoose';
-import { verifyAccessToken } from '../middleware/token.middleware.js';
+import verifyJWT from '../middleware/token.middleware.js';
 mongoose.connect('mongodb://localhost:27017/socialMediaBackend')
 .then(()=>{console.log("Connected to mongoDB")})
 .catch((error)=>{console.log(" Error connecting to mongoDB", error)})
@@ -79,7 +79,7 @@ app.post("/login", async (req, res) => {
       res.status(500).json({ error: "Internal server error" });
     }
   }); // working
-app.post('/bio',verifyAccessToken, async(req,res)=>{
+app.post('/bio',verifyJWT, async(req,res)=>{
   const {bio} = req.body;
   if( bio === ""){ return res.json({message:"Enter a bio"})}
   try {
@@ -93,17 +93,19 @@ app.post('/bio',verifyAccessToken, async(req,res)=>{
   }
 
 });  // working
-app.post('/profileimage',verifyAccessToken, upload.single('profileImage'), async (req, res) => {
+app.post('/profileimage',verifyJWT, upload.single('profileImage'), async (req, res) => {
     try {
         // Find the user by ID (assuming you're using some form of authentication middleware)
         const user = await User.findById(req.user.id);
         if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
-        // Update the user's profileImage field with the filename of the uploaded file
-        user.UserImage = req.file.filename;
-
-        // Save the updated user object
+        // console.log("req.file is : ", req.file)
+        if (!req.file) {
+          return res.json({ Error: "No file uploaded" });
+        }
+    const cloudinaryResult = await uploadCloudinary(req.file?.path)
+user.profileImage = cloudinaryResult.url;
         await user.save();
 
         return res.status(200).json({ message: 'Profile picture uploaded successfully', user });

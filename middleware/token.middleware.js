@@ -1,35 +1,28 @@
 import jwt from "jsonwebtoken"
-// veryfying access token
-
-export const verifyAccessToken = (req, res, next) => {
-    const accessTokenByCookie = req.cookies.accessToken;
-
-    if (!accessTokenByCookie) {
-        return res.status(401).json({ error: "Access Token didn't find." });
-    }
-
+import User from "../model/user.model.js";
+import dotenv from 'dotenv';
+dotenv.config();
+const verifyJWT = async (req, res, next) => {
     try {
-        const decoded = jwt.verify(accessTokenByCookie, process.env.JWT_ACCESS_PASSWORD);
-        req.user = decoded; // stores id of user from token
+        const token = req.cookies.accessToken;
+        if (!token) {
+            return res.status(401).json({ error: "No token found" });
+        }
+        
+        const decodedToken = jwt.verify(token, process.env.JWT_ACCESS_PASSWORD);
+        const user = await User.findById(decodedToken.id);
+        
+        if (!user) {
+            return res.status(401).json({ error: "Invalid access token" });
+        }
+
+        // Attach user object to the request for further processing
+        req.user = user;
         next();
     } catch (error) {
-        console.error('JWT Verify Error:', error);
-        return res.status(403).json({ error: "Access token is invalid or expired." });
+        console.error(error);
+        return res.status(401).json({ error: "Invalid access token" });
     }
 };
 
-
-// export const verifyRefreshToken = (req,res,next)=>{
-//     const refreshTokenByCookie = req.cookies.refreshToken;
-//     if(!refreshTokenByCookie) { return res.status(401).json({error: "Refresh Token didnt find."}) }
-//     try{
-//         const decoded = jwt.verify(refreshTokenByCookie, process.env.JWT_REFRESH_PASSWORD)
-//         req.user = decoded;
-//         next();
-//     }
-//     catch(error){
-//         return res.status(403).json({error:"Refresh token is invalid or expired."})
-//     }
-// }
-
-// note: cookies must be names accessToken and refreshToken respectively.
+export default verifyJWT;
