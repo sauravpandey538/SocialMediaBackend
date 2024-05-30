@@ -87,7 +87,7 @@ try {
 } catch (error) {
   return res.status(400).json({message:"problem came during login", error})
 }
-})
+})   // working
 app.post('/bio',verifyJWT, async(req,res)=>{
   const {bio} = req.body;
   if( bio === ""){ return res.json({message:"Enter a bio"})}
@@ -177,6 +177,19 @@ try {
 }) // worlimg
 
 
+// about post
+app.post('/upload/post',()=>{})
+app.delete('/post/:id',()=>{})
+app.get('/post/:id',()=>{}) // jwt don't require
+
+// about like and comment
+app.post('/post/:id/like', ()=>{});
+app.post('/post/:id/comment', ()=>{});
+
+// about following and followers
+
+app.post('/:user/follow', ()=>{});
+// app.post('/following', ()=>{}); //may be deleted later
 
 
 
