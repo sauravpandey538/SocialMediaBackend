@@ -5,6 +5,7 @@ dotenv.config();
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import User from "../model/user.model.js"
+import Follow from '../model/follow.model.js';
 import upload from '../middleware/multer.js';
 import uploadCloudinary from "../utilities/cloudinary.js"
 import bcrypt from "bcrypt"
@@ -144,7 +145,7 @@ user.coverImage = cloudinaryResult.url;
       return res.status(500).json({ error: "Internal server error" });
   }
 }); // working
-app.post('/user', verifyJWT, async(req,res)=>{
+app.post('/myprofile', verifyJWT, async(req,res)=>{
 try {
   const user = await User.findById(req.user.id);
   return res.status(200).json({user})
@@ -152,6 +153,70 @@ try {
   return res.status(400).json({message:"user couldn't find", error})
 }
 }) // working
+app.post('/:userId/profile', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Ensure userId is a valid ObjectId
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: "Invalid userId" });
+        }
+
+        // Convert userId to ObjectId
+        const objectIdUserId = new mongoose.Types.ObjectId(userId);
+
+        // Use Mongoose query chaining to populate the followers and following arrays
+        const users = await User.aggregate([
+            {
+                $match: { _id: objectIdUserId }
+            },
+            {
+                $lookup: {
+                    from: "follows",
+                    localField: "_id",
+                    foreignField: "follower",
+                    as: "followingList"
+                }
+            },
+            {
+                $lookup: {
+                    from: "follows",
+                    localField: "_id",
+                    foreignField: "following",
+                    as: "followersList"
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    email: 1,
+                    profileImage: 1,
+                    bio: 1,
+                    followingList: 1,
+                    followersList: 1,
+                    followCount: { $size: "$followersList" },
+            followingCount: { $size: "$followingList" }
+                }
+            }
+        ]);
+
+        if (users.length === 0) {
+            return res.status(404).json({ message: "User not found", data: {} });
+        }
+
+        const user = users[0];
+
+        return res.status(200).json({ message: "User fetched successfully", data: user });
+    } catch (error) {
+        console.error("Error in fetching user profile:", error);
+        return res.status(500).json({ message: "Internal server error", error });
+    }
+}); // working
+
+
+
+
+
 app.patch('/update/password',verifyJWT, async(req,res)=>{
   const {newpassword,oldpassword} = req.body;
   if(newpassword === "") {
@@ -188,7 +253,27 @@ app.post('/post/:id/comment', ()=>{});
 
 // about following and followers
 
-app.post('/:user/follow', ()=>{});
+app.post('/:user/follow',verifyJWT, async(req,res)=>{
+
+  try {
+    const followingId = req.params.user;
+    console.log(followingId)
+    const followerId = req.user.id
+    const alreadyFollowed = await Follow.findOne({follower: followerId, following:followingId})
+    if (alreadyFollowed){
+      return res.status(400).json({message:" Already followed"})
+    }
+    const operation = new Follow({
+      follower: followerId,
+      following:followingId,
+    })
+  await operation.save()
+  return res.status(200).json({message: "Followed sucessfully"})
+  } catch (error) {
+    return res.status(400).json({message:"internal server error", error})
+  }
+});
+
 // app.post('/following', ()=>{}); //may be deleted later
 
 
