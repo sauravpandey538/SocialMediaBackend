@@ -6,6 +6,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import User from "../model/user.model.js"
 import Follow from '../model/follow.model.js';
+import Post from "../model/post.model.js"
 import upload from '../middleware/multer.js';
 import uploadCloudinary from "../utilities/cloudinary.js"
 import bcrypt from "bcrypt"
@@ -234,11 +235,6 @@ app.post('/:userId/profile', async (req, res) => {
         return res.status(500).json({ message: "Internal server error", error });
     }
 }); // working
-
-
-
-
-
 app.patch('/update/password',verifyJWT, async(req,res)=>{
   const {newpassword,oldpassword} = req.body;
   if(newpassword === "") {
@@ -261,15 +257,81 @@ try {
 } catch (error) {
   return res.status(400).json({message:"Error during changing password"})
 }
-}) // worlimg
+}) // working
+
+
+
 
 
 // about post
-app.post('/upload/post',()=>{})
-app.delete('/post/:id',()=>{})
-app.get('/post/:id',()=>{}) // jwt don't require
+app.post('/upload/post', verifyJWT, upload.single('image'), async(req,res)=>{
+try {
+  const {caption} = req.body;
+  // if (!(image || caption)) {
+  //   return res.status(400).json({message:"enter a valid post"})
+  // }
+  const imageUrl = await uploadCloudinary(req.file?.path)
+  const post = await Post.create({
+    uploader : req.user.id,
+    postImage : imageUrl.url,
+    caption 
+  })
+  return res.status(200).json({message:"post uploaded sucessfully", post})
+} catch (error) {
+  
+}return res.status(400).json({message:"internal server error", error})
+}) // working  // checked with image and caption
+app.delete('/post/:id',verifyJWT,async(req,res)=>{
+try {
+  const postId = req.params.id;
+  const postUpoader = await Post.findById(postId);
+  const loggedinUser = await User.findById(req.user.id)
+  console.log(postUpoader.uploader,loggedinUser._id) // same value
+  if (postUpoader.uploader.toString() == loggedinUser._id.toString()){ // to string is mandatory
+    const deletePost = await Post.findByIdAndDelete(postId);
+    return res.status(200).json({message: "post deleted sucessfully", deletedPost: deletePost})
+  }
+  return res.status(400).json({message: "Uploader didn't match with you"})
+} catch (error) {
+  return res.status(400).json({message:"internal server error"})
+}
+}) // working
+app.get('/posts',async(req,res)=>{
+try {
+     const post = await Post.find({});
+     return res.status(200).json({mesage:"post api fetched sucessfully",post})
+} catch (error) {
+  return res.status(400).json({message:"internal server error"})
+}
+})  // working
+app.get('/:userId/posts',async(req,res)=>{
+  const {userId} = req.params;
+  const isUserExist  = await User.findById(userId);
+  if(!isUserExist) {
+    return res.status(400).json({message:"user is not valid"})
+  }
+try {
+    const userspost = await Post.find({uploader:userId});
+    return res.status(200).json({message:"user's post fetched sucessfully", userspost})
+} catch (error) {
+  return res.status(400).json({error})
+}
+}) // working
 
-// about like and comment
+
+
+
+
+
+
+
+
+
+
+
+
+
+// about like and comment // later on...
 app.post('/post/:id/like', ()=>{});
 app.post('/post/:id/comment', ()=>{});
 
@@ -297,8 +359,6 @@ app.post('/:user/follow',verifyJWT, async(req,res)=>{
 });
 
 // app.post('/following', ()=>{}); //may be deleted later
-
-
 
 // Start the server and listen on port 3000
 app.listen(port, () => {

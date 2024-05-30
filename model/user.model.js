@@ -16,14 +16,14 @@ const userSchema = new Schema({
     profileImage: {type:String, default:""},
     coverImage: {type:String, default:""},
     bio:{type:String, default:""},
-    following:[{
-        type:Schema.Types.ObjectId,
-        ref: 'User'
-    }],
-    follow:[{
-        type:Schema.Types.ObjectId,
-        ref: 'User'
-    }]
+    // following:[{
+    //     type:Schema.Types.ObjectId,
+    //     ref: 'User'
+    // }],
+    // follow:[{
+    //     type:Schema.Types.ObjectId,
+    //     ref: 'User'
+    // }]
 })
 
 
