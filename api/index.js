@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import User from "../model/user.model.js"
 import upload from '../middleware/multer.js';
 import uploadCloudinary from "../utilities/cloudinary.js"
+import bcrypt from "bcrypt"
 const app = express();
 const port = process.env.PORT;
 import mongoose from 'mongoose';
@@ -21,8 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('./uploads'));
 
 // Define a route handler for the default home page
-app.get('/', (req, res) => {
-    res.send('Hello, Express 3.0!');
+app.get('/', (_, res) => {res.send('Hello, Express 3.0!');
 });
 app.post('/signup',async(req,res)=>{
     const {email,password} = req.body;
@@ -78,21 +78,30 @@ app.post("/login", async (req, res) => {
       console.error("Error during login:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }); // working
+}); // working
+app.post('/logout', verifyJWT, async (_,res)=>{
+try {
+  res.clearCookie('accessToken');
+  res.clearCookie('refreshToken');
+  return res.status(200).json({message:"Sugcessfully logout"})
+} catch (error) {
+  return res.status(400).json({message:"problem came during login", error})
+}
+})
 app.post('/bio',verifyJWT, async(req,res)=>{
   const {bio} = req.body;
   if( bio === ""){ return res.json({message:"Enter a bio"})}
   try {
-
+     const bioFromBody = bio;
     const user = await User.findById(req.user.id)
-    user.bio = bio;
+    user.bio = bioFromBody;
     user.save()
     return res.status(200).json({message:"Bio updated Sucessfully", user})
   } catch (error) {
     return res.status(400).json({message:"Error during adding bio", error})
   }
 
-});  // working
+});  // working  // accepting only json body...
 app.post('/profileimage',verifyJWT, upload.single('profileImage'), async (req, res) => {
     try {
         // Find the user by ID (assuming you're using some form of authentication middleware)
@@ -113,9 +122,59 @@ user.profileImage = cloudinaryResult.url;
         console.error('Error uploading profile picture:', error);
         return res.status(500).json({ error: "Internal server error" });
     }
-}); // needs to be upgraded later
+}); // working
+app.post('/coverimage',verifyJWT, upload.single('coverImage'), async (req, res) => {
+  try {
+      // Find the user by ID (assuming you're using some form of authentication middleware)
+      const user = await User.findById(req.user.id);
+      if (!user) {
+          return res.status(404).json({ error: "User not found" });
+      }
+      // console.log("req.file is : ", req.file)
+      if (!req.file) {
+        return res.json({ Error: "No file uploaded" });
+      }
+  const cloudinaryResult = await uploadCloudinary(req.file?.path)
+user.coverImage = cloudinaryResult.url;
+      await user.save();
 
+      return res.status(200).json({ message: 'Cover image uploaded successfully', user });
+  } catch (error) {
+      console.error('Error uploading cover image:', error);
+      return res.status(500).json({ error: "Internal server error" });
+  }
+}); // working
+app.post('/user', verifyJWT, async(req,res)=>{
+try {
+  const user = await User.findById(req.user.id);
+  return res.status(200).json({user})
+} catch (error) {
+  return res.status(400).json({message:"user couldn't find", error})
+}
+}) // working
+app.patch('/update/password',verifyJWT, async(req,res)=>{
+  const {newpassword,oldpassword} = req.body;
+  if(newpassword === "") {
+    return res.status(400).json({message:"Enter your new password correctly "})
+  }
+  if(oldpassword === "") {
+  return res.status(400).json({message:"Enter your old password correctly "})
+}
+try {
+  const user = await User.findById(req.user.id)
+  const passwordCheck = await user.isPasswordCorrect(oldpassword)
+  if (!passwordCheck){
+    return res.status(400).json({message:"Enter your old password correctly"})
+  }
+  const hashedPassword = await bcrypt.hash(newpassword,10)
 
+  user.password = hashedPassword;
+  user.save();
+  return res.status(200).json({mesage:"User password changed correctlty", user})
+} catch (error) {
+  return res.status(400).json({message:"Error during changing password"})
+}
+}) // worlimg
 
 
 
