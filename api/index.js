@@ -167,38 +167,60 @@ app.post('/:userId/profile', async (req, res) => {
 
         // Use Mongoose query chaining to populate the followers and following arrays
         const users = await User.aggregate([
-            {
-                $match: { _id: objectIdUserId }
-            },
-            {
-                $lookup: {
-                    from: "follows",
-                    localField: "_id",
-                    foreignField: "follower",
-                    as: "followingList"
-                }
-            },
-            {
-                $lookup: {
-                    from: "follows",
-                    localField: "_id",
-                    foreignField: "following",
-                    as: "followersList"
-                }
-            },
-            {
-                $project: {
-                    name: 1,
-                    email: 1,
-                    profileImage: 1,
-                    bio: 1,
-                    followingList: 1,
-                    followersList: 1,
-                    followCount: { $size: "$followersList" },
-            followingCount: { $size: "$followingList" }
-                }
-            }
-        ]);
+          {
+              $match: { _id: objectIdUserId }
+          },
+          {
+              $lookup: {
+                  from: "follows",
+                  localField: "_id",
+                  foreignField: "follower",
+                  as: "followingList"
+              }
+          },
+          {
+              $lookup: {
+                  from: "follows",
+                  localField: "_id",
+                  foreignField: "following",
+                  as: "followersList"
+              }
+          },
+          {
+              $lookup: {
+                  from: "users",
+                  localField: "followersList.follower",
+                  foreignField: "_id",
+                  as: "followerDetails"
+              }
+          },
+          {
+              $lookup: {
+                  from: "users",
+                  localField: "followingList.following",
+                  foreignField: "_id",
+                  as: "followingDetails"
+              }
+          },
+          {
+              $project: {
+                  name: 1,
+                  email: 1,
+                  profileImage: 1,
+                  bio: 1,
+                  followCount: { $size: "$followersList" },
+                  followingCount: { $size: "$followingList" },
+                  "followers.email": { $arrayElemAt: ["$followerDetails.email", 0] },
+                  "followers.profileImage": { $arrayElemAt: ["$followerDetails.profileImage", 0] },
+                  following: {
+                      email: { $arrayElemAt: ["$followingDetails.email", 0] },
+                      profileImage: { $arrayElemAt: ["$followingDetails.profileImage", 0] }
+                  }
+              }
+          }
+      ]);
+      
+      
 
         if (users.length === 0) {
             return res.status(404).json({ message: "User not found", data: {} });
