@@ -321,16 +321,6 @@ try {
 
 
 
-
-
-
-
-
-
-
-
-
-
 // about like and comment // later on...
 app.post('/post/:id/like', ()=>{});
 app.post('/post/:id/comment', ()=>{});
