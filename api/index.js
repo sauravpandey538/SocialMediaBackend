@@ -22,8 +22,12 @@ mongoose.connect('mongodb://localhost:27017/socialMediaBackend')
 .then(()=>{console.log("Connected to mongoDB")})
 .catch((error)=>{console.log(" Error connecting to mongoDB", error)})
 
-app.use(cors()); // enabled for all routers
-
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Allow requests from your frontend URL
+    credentials: true, // Allow credentials (cookies)
+  })
+);
 app.use(express.json())
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: true }));
@@ -72,30 +76,33 @@ app.post("/login", async (req, res) => {
       await existingUser.save();
   
       const options = {
-        httpOnly: true,
-        secure: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        httpOnly: false,
+        secure: false,
+        maxAge: 24 * 60 * 60 * 1000,
+        // path: '/api' // 24 hours
       };
   
       res
         .cookie("accessToken", accessToken, options)
         .cookie("refreshToken", refreshToken, options)
         .status(200)
-        .json({ message: "Login successful", user: existingUser, accessToken });
+        .json({ message: "Login successful", user: existingUser, accessToken, refreshToken });
     } catch (error) {
       console.error("Error during login:", error);
       res.status(500).json({ error: "Internal server error" });
     }
 }); // working
-app.post('/logout', verifyJWT, async (_,res)=>{
-try {
-  res.clearCookie('accessToken');
-  res.clearCookie('refreshToken');
-  return res.status(200).json({message:"Sugcessfully logout"})
-} catch (error) {
-  return res.status(400).json({message:"problem came during login", error})
-}
-})   // working
+app.post('/logout', verifyJWT, async (req, res) => {
+  try {
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+    return res.status(200).json({ message: "Successfully logged out" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+  // working
 app.post('/bio',verifyJWT, async(req,res)=>{
   const {bio} = req.body;
   if( bio === ""){ return res.json({message:"Enter a bio"})}
@@ -152,7 +159,7 @@ user.coverImage = cloudinaryResult.url;
       return res.status(500).json({ error: "Internal server error" });
   }
 }); // working
-app.post('/myprofile', verifyJWT, async(req,res)=>{
+app.get('/myprofile', verifyJWT, async(req,res)=>{
 try {
   const user = await User.findById(req.user.id);
   return res.status(200).json({user})
@@ -270,20 +277,35 @@ try {
 
 
 // about post
-app.post('/upload/post', verifyJWT, upload.single('image'), async(req,res)=>{
-try {
-  const {caption} = req.body;
-  const imageUrl = await uploadCloudinary(req.file?.path)
-  const post = await Post.create({
-    uploader : req.user.id,
-    postImage : imageUrl.url,
-    caption 
-  })
-  return res.status(200).json({message:"post uploaded sucessfully", post})
-} catch (error) {
-  
-}return res.status(400).json({message:"internal server error", error})
-}) // working  // checked with image and caption
+app.post('/upload/post', verifyJWT, upload.single('image'), async (req, res) => {
+  try {
+    const { caption } = req.body;
+    const imageUrl = await uploadCloudinary(req.file?.path);
+
+    // Fetch the user object using the user ID
+    const user = await User.findById(req.user.id);
+
+    // Ensure that the user object exists
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Use the ObjectId of the user as the uploader
+    const uploader = user.email;
+    const uploaderPP = user.profileImage;
+    const post = await Post.create({
+      uploader,
+      postImage: imageUrl.url,
+      caption,
+      uploaderPP
+    });
+
+    return res.status(200).json({ message: 'Post uploaded successfully', post });
+  } catch (error) {
+    return res.status(400).json({ message: 'Internal server error', error });
+  }
+});
+ // working  // checked with image and caption
 app.delete('/post/:id',verifyJWT,async(req,res)=>{
 try {
   const postId = req.params.id;
@@ -301,7 +323,7 @@ try {
 }) // working
 app.get('/posts',async(req,res)=>{
 try {
-     const post = await Post.find({});
+     const post = await Post.find({}).sort({ customTimestamp: -1 });
      return res.status(200).json({mesage:"post api fetched sucessfully",post})
 } catch (error) {
   return res.status(400).json({message:"internal server error"})
