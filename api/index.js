@@ -7,16 +7,22 @@ import cookieParser from 'cookie-parser';
 import User from "../model/user.model.js"
 import Follow from '../model/follow.model.js';
 import Post from "../model/post.model.js"
+import Story from '../model/story.model.js';
 import upload from '../middleware/multer.js';
+import { validateSignup } from '../middleware/validateSignup.js';
+
 import uploadCloudinary from "../utilities/cloudinary.js"
 import bcrypt from "bcrypt"
 const app = express();
 const port = process.env.PORT;
 import mongoose from 'mongoose';
 import verifyJWT from '../middleware/token.middleware.js';
+import cors from "cors"
 mongoose.connect('mongodb://localhost:27017/socialMediaBackend')
 .then(()=>{console.log("Connected to mongoDB")})
 .catch((error)=>{console.log(" Error connecting to mongoDB", error)})
+
+app.use(cors()); // enabled for all routers
 
 app.use(express.json())
 app.use(cookieParser())
@@ -26,7 +32,7 @@ app.use(express.static('./uploads'));
 // Define a route handler for the default home page
 app.get('/', (_, res) => {res.send('Hello, Express 3.0!');
 });
-app.post('/signup',async(req,res)=>{
+app.post('/signup', validateSignup ,async(req,res)=>{
     const {email,password} = req.body;
     if(!(email && password)){
         return res.status(400).json({message:"Provide both email and password"})
@@ -267,9 +273,6 @@ try {
 app.post('/upload/post', verifyJWT, upload.single('image'), async(req,res)=>{
 try {
   const {caption} = req.body;
-  // if (!(image || caption)) {
-  //   return res.status(400).json({message:"enter a valid post"})
-  // }
   const imageUrl = await uploadCloudinary(req.file?.path)
   const post = await Post.create({
     uploader : req.user.id,
@@ -317,16 +320,6 @@ try {
   return res.status(400).json({error})
 }
 }) // working
-
-
-
-
-// about like and comment // later on...
-app.post('/post/:id/like', ()=>{});
-app.post('/post/:id/comment', ()=>{});
-
-// about following and followers
-
 app.post('/:user/follow',verifyJWT, async(req,res)=>{
 
   try {
@@ -346,11 +339,40 @@ app.post('/:user/follow',verifyJWT, async(req,res)=>{
   } catch (error) {
     return res.status(400).json({message:"internal server error", error})
   }
-});
-
-// app.post('/following', ()=>{}); //may be deleted later
-
+}); // working
+ app.post('/suggestions/:count',verifyJWT, async(req,res)=>{
+  const count  = parseInt(req.params.count) || 5;
+  const fetchUser = await User.find().limit(count).sort({ createdAt: -1 });
+  return res.status(200).json({suggestions:fetchUser})
+ });  // working
+ app.post('/upload/story', verifyJWT, upload.single('image'), async(req,res)=>{
+  try {
+    const imageUrl = await uploadCloudinary(req.file?.path)
+    const story = await Story.create({
+      uploader : req.user.id,
+      storyImage : imageUrl.url,
+      caption 
+    })
+    return res.status(200).json({message:"story uploaded sucessfully", story})
+  } catch (error) {
+    
+  }return res.status(400).json({message:"internal server error", error})
+  })
+  app.post('/story/:count',verifyJWT, async(req,res)=>{
+    const count  = parseInt(req.params.count) || 9;
+    const fetchUser = await Post.find().limit(count).sort({ createdAt: -1 });
+    return res.status(200).json({suggestions:fetchUser})
+   });
 // Start the server and listen on port 3000
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
 });
+
+
+
+
+// // about like and comment // later on...
+// app.post('/post/:id/like', ()=>{});
+// app.post('/post/:id/comment', ()=>{});
+
+// // about following and followers

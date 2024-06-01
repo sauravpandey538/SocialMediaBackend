@@ -8,6 +8,8 @@ const userSchema = new Schema({
         type: String,
         required: true,
         unique:true,
+        match: [/^\S+@\S+\.\S+$/, 'Invalid email format.'],
+
     },
     password:{
         type:String,
@@ -16,6 +18,7 @@ const userSchema = new Schema({
     profileImage: {type:String, default:""},
     coverImage: {type:String, default:""},
     bio:{type:String, default:""},
+    createdAt: { type: Date, default: Date.now }
     // following:[{
     //     type:Schema.Types.ObjectId,
     //     ref: 'User'
