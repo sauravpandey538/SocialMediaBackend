@@ -1,10 +1,7 @@
 import mongoose,{Schema} from "mongoose";
 const storySchema = new Schema({
-    uploader : {
-        type : Schema.Types.ObjectId,
-        ref:"User"
-    },
-   
+    uploader : String,
+   uploaderPP:String,
     storyImage:{
         type:String,
         default:null

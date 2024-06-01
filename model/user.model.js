@@ -17,16 +17,9 @@ const userSchema = new Schema({
     },
     profileImage: {type:String, default:"https://static-00.iconduck.com/assets.00/profile-default-icon-2048x2045-u3j7s5nj.png"},
     coverImage: {type:String, default:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTVpu5LXes7c_BQvwCrH8Prr9d0AKdaug-YtQ&s"},
-    bio:{type:String, default:""},
-    createdAt: { type: Date, default: Date.now }
-    // following:[{
-    //     type:Schema.Types.ObjectId,
-    //     ref: 'User'
-    // }],
-    // follow:[{
-    //     type:Schema.Types.ObjectId,
-    //     ref: 'User'
-    // }]
+    bio: { type: String, default: '' },     
+     createdAt: { type: Date, default: Date.now }
+   
 })
 
 

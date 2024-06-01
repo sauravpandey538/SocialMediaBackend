@@ -103,20 +103,31 @@ app.post('/logout', verifyJWT, async (req, res) => {
   }
 });
   // working
-app.post('/bio',verifyJWT, async(req,res)=>{
-  const {bio} = req.body;
-  if( bio === ""){ return res.json({message:"Enter a bio"})}
-  try {
-     const bioFromBody = bio;
-    const user = await User.findById(req.user.id)
-    user.bio = bioFromBody;
-    user.save()
-    return res.status(200).json({message:"Bio updated Sucessfully", user})
-  } catch (error) {
-    return res.status(400).json({message:"Error during adding bio", error})
-  }
-
-});  // working  // accepting only json body...
+  app.post('/bio', verifyJWT, async (req, res) => {
+    const { bio } = req.body;
+  
+    if (bio === "") {
+      return res.json({ message: "Enter a bio" });
+    }
+  
+    try {
+      const user = await User.findById(req.user.id);
+  
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      user.bio = bio;
+  
+      await user.save();
+      const updatedUser = await User.findById(req.user.id);  
+      return res.status(200).json({ message: "Bio updated successfully", user: updatedUser });
+    } catch (error) {
+      return res.status(400).json({ message: "Error during adding bio", error });
+    }
+  }); // working in json only
+  
+    // working  // accepting only json body...
 app.post('/profileimage',verifyJWT, upload.single('profileImage'), async (req, res) => {
     try {
         // Find the user by ID (assuming you're using some form of authentication middleware)
@@ -297,7 +308,8 @@ app.post('/upload/post', verifyJWT, upload.single('image'), async (req, res) => 
       uploader,
       postImage: imageUrl.url,
       caption,
-      uploaderPP
+      uploaderPP,
+      customTimestamp: Date.now()
     });
 
     return res.status(200).json({ message: 'Post uploaded successfully', post });
@@ -362,7 +374,7 @@ app.post('/:user/follow',verifyJWT, async(req,res)=>{
     return res.status(400).json({message:"internal server error", error})
   }
 }); // working
- app.post('/suggestions/:count',verifyJWT, async(req,res)=>{
+ app.get('/suggestions/:count',verifyJWT, async(req,res)=>{
   const count  = parseInt(req.params.count) || 5;
   const fetchUser = await User.find().limit(count).sort({ createdAt: -1 });
   return res.status(200).json({suggestions:fetchUser})
@@ -370,19 +382,32 @@ app.post('/:user/follow',verifyJWT, async(req,res)=>{
  app.post('/upload/story', verifyJWT, upload.single('image'), async(req,res)=>{
   try {
     const imageUrl = await uploadCloudinary(req.file?.path)
+    // Fetch the user object using the user ID
+    const user = await User.findById(req.user.id);
+console.log(user,req.file)
+    // Ensure that the user object exists
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Use the ObjectId of the user as the uploader
+    const uploader = user.email;
+    const uploaderPP = user.profileImage;
+
     const story = await Story.create({
-      uploader : req.user.id,
+      uploader,
       storyImage : imageUrl.url,
-      caption 
+      uploaderPP,
+      customTimestamp: Date.now() // added now
     })
     return res.status(200).json({message:"story uploaded sucessfully", story})
   } catch (error) {
-    
-  }return res.status(400).json({message:"internal server error", error})
+    return res.status(400).json({message:"internal server error", error})
+  }
   })
-  app.post('/story/:count',verifyJWT, async(req,res)=>{
+  app.get('/story/:count',verifyJWT, async(req,res)=>{
     const count  = parseInt(req.params.count) || 9;
-    const fetchUser = await Post.find().limit(count).sort({ createdAt: -1 });
+    const fetchUser = await Story.find().limit(count).sort({ createdAt: -1 });
     return res.status(200).json({suggestions:fetchUser})
    });
 // Start the server and listen on port 3000
