@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt"
 
+
 const userSchema = new Schema({
     name: String,
     email: {
@@ -15,8 +16,8 @@ const userSchema = new Schema({
         type:String,
         require:true
     },
-    profileImage: {type:String, default:"https://static-00.iconduck.com/assets.00/profile-default-icon-2048x2045-u3j7s5nj.png"},
-    coverImage: {type:String, default:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTVpu5LXes7c_BQvwCrH8Prr9d0AKdaug-YtQ&s"},
+    profileImage: {type:String, default:"https://res.cloudinary.com/ddqif698j/image/upload/v1717357608/credentials%20data/xnyyjvwinbf2iwanpmdg.jpg"},
+    coverImage: {type:String, default:"https://res.cloudinary.com/ddqif698j/image/upload/v1717357662/credentials%20data/cfiorkdqlqanhrw711al.jpg"},
     bio: { type: String, default: '' },     
      createdAt: { type: Date, default: Date.now }
    

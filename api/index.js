@@ -178,7 +178,7 @@ try {
   return res.status(400).json({message:"user couldn't find", error})
 }
 }) // working
-app.post('/:userId/profile', async (req, res) => {
+app.get('/:userId/profile', async (req, res) => {
     try {
         const { userId } = req.params;
 
