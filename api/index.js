@@ -375,8 +375,9 @@ app.post('/:user/follow',verifyJWT, async(req,res)=>{
   }
 }); // working
  app.get('/suggestions/:count',verifyJWT, async(req,res)=>{
+  
   const count  = parseInt(req.params.count) || 5;
-  const fetchUser = await User.find().limit(count).sort({ createdAt: -1 });
+  const fetchUser = await User.find({ _id: { $ne: req.user.id } }).limit(count).sort({ createdAt: -1 });
   return res.status(200).json({suggestions:fetchUser})
  });  // working
  app.post('/upload/story', verifyJWT, upload.single('image'), async(req,res)=>{
@@ -410,6 +411,7 @@ console.log(user,req.file)
     const fetchUser = await Story.find().limit(count).sort({ createdAt: -1 });
     return res.status(200).json({suggestions:fetchUser})
    });
+
 // Start the server and listen on port 3000
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
