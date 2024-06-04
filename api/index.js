@@ -128,7 +128,7 @@ app.post('/logout', verifyJWT, async (req, res) => {
   }); // working in json only
   
     // working  // accepting only json body...
-app.post('/profileimage',verifyJWT, upload.single('profileImage'), async (req, res) => {
+app.post('/profileimage',verifyJWT, upload.single('image'), async (req, res) => {
     try {
         // Find the user by ID (assuming you're using some form of authentication middleware)
         const user = await User.findById(req.user.id);
@@ -149,7 +149,7 @@ user.profileImage = cloudinaryResult.url;
         return res.status(500).json({ error: "Internal server error" });
     }
 }); // working
-app.post('/coverimage',verifyJWT, upload.single('coverImage'), async (req, res) => {
+app.post('/coverimage',verifyJWT, upload.single('image'), async (req, res) => {
   try {
       // Find the user by ID (assuming you're using some form of authentication middleware)
       const user = await User.findById(req.user.id);
