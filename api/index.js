@@ -331,16 +331,24 @@ try {
   return res.status(400).json({message:"internal server error"})
 }
 }) // working
-app.get('/posts',async(req,res)=>{
+app.get('/posts', async (req, res) => {
   // const { skip = 0, limit = 4 } = req.query;
 
-try {
-     const post = await Post.find({}).populate("uploader").sort({ customTimestamp: -1 });
-     return res.status(200).json({mesage:"post api fetched sucessfully",post})
-} catch (error) {
-  return res.status(400).json({message:"internal server error"})
-}
-})  // working
+  try {
+    const posts = await Post.find({})
+      .populate('uploader', 'email profileImage') // Select specific user fields
+      .sort({ customTimestamp: -1 })
+      // .skip(Number(skip))
+      // .limit(Number(limit));
+
+    const totalPosts = await Post.countDocuments(); // Get total post count
+
+    return res.status(200).json({ posts, totalPosts });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+}); // working
 app.get('/:userId/posts',async(req,res)=>{
   const {userId} = req.params;
   const isUserExist  = await User.findById(userId);
