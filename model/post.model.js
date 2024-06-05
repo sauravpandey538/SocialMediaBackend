@@ -1,11 +1,13 @@
 import mongoose,{Schema} from "mongoose"
 const postSchema = new Schema ({
-uploader : String,
+uploader : {
+    type: mongoose.Schema.Types.ObjectId,
+     ref: "User",
+},
 postImage : String,
 caption : {
     type: String, default : "",
 },
-uploaderPP:String,
 customTimestamp:{type: Number, default :  Date.now()},
 
 

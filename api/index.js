@@ -232,6 +232,7 @@ app.get('/:userId/profile', async (req, res) => {
                   name: 1,
                   email: 1,
                   profileImage: 1,
+                  coverImage:1,
                   bio: 1,
                   followCount: { $size: "$followersList" },
                   followingCount: { $size: "$followingList" },
@@ -244,7 +245,8 @@ app.get('/:userId/profile', async (req, res) => {
               }
           }
       ]);
-      
+      const posts = await Post.find({uploader:userId}).sort({customTimestamp :-1})
+      const postCount = await Post.countDocuments({ uploader: userId });
       
 
         if (users.length === 0) {
@@ -253,7 +255,7 @@ app.get('/:userId/profile', async (req, res) => {
 
         const user = users[0];
 
-        return res.status(200).json({ message: "User fetched successfully", data: user });
+        return res.status(200).json({ message: "User fetched successfully", data: user, posts,postCount});
     } catch (error) {
         console.error("Error in fetching user profile:", error);
         return res.status(500).json({ message: "Internal server error", error });
@@ -283,10 +285,6 @@ try {
 }
 }) // working
 
-
-
-
-
 // about post
 app.post('/upload/post', verifyJWT, upload.single('image'), async (req, res) => {
   try {
@@ -302,10 +300,10 @@ app.post('/upload/post', verifyJWT, upload.single('image'), async (req, res) => 
     }
 
     // Use the ObjectId of the user as the uploader
-    const uploader = user.email;
+    // const uploader = user.email;
     const uploaderPP = user.profileImage;
     const post = await Post.create({
-      uploader,
+      uploader: req.user._id,
       postImage: imageUrl.url,
       caption,
       uploaderPP,
@@ -334,8 +332,10 @@ try {
 }
 }) // working
 app.get('/posts',async(req,res)=>{
+  // const { skip = 0, limit = 4 } = req.query;
+
 try {
-     const post = await Post.find({}).sort({ customTimestamp: -1 });
+     const post = await Post.find({}).populate("uploader").sort({ customTimestamp: -1 });
      return res.status(200).json({mesage:"post api fetched sucessfully",post})
 } catch (error) {
   return res.status(400).json({message:"internal server error"})
