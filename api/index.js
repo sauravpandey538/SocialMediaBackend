@@ -419,7 +419,17 @@ console.log(user,req.file)
     const fetchUser = await Story.find().limit(count).sort({ createdAt: -1 });
     return res.status(200).json({suggestions:fetchUser})
    });
-
+app.get("/:userId/followings", async(req,res)=>{
+  const {userId} = req.params;
+  const user = await User.findById(userId);
+  if(!user){ return res.status(404).json({ message:"User is not registered yet"})}
+  try {
+    const followingList = await Follow.find({follower : userId}).populate("following");
+    return res.status(200).json({message:"Following list fetched sucessfully", followingList})
+  } catch (error) {
+    return res.status(400).json({message:"Internal server error"})
+  }
+})
 // Start the server and listen on port 3000
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
