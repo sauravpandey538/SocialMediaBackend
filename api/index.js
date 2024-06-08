@@ -275,11 +275,9 @@ try {
   if (!passwordCheck){
     return res.status(400).json({message:"Enter your old password correctly"})
   }
-  const hashedPassword = await bcrypt.hash(newpassword,10)
-
-  user.password = hashedPassword;
-  user.save();
-  return res.status(200).json({mesage:"User password changed correctlty", user})
+  user.password = newpassword;
+  await user.save();
+  return res.status(200).json({mesage:"User password changed correctlty", user, newpassword})
 } catch (error) {
   return res.status(400).json({message:"Error during changing password"})
 }
@@ -430,6 +428,37 @@ app.get("/:userId/followings", async(req,res)=>{
     return res.status(400).json({message:"Internal server error"})
   }
 })
+
+app.delete("/delete/posts", verifyJWT, async(req,res)=>{
+const user = await User.findById(req.user.id)
+if(!user){
+  return res.status(404).json({message:"invalid user access"})
+}
+try {
+  const posts = await Post.deleteMany({uploader : req.user.id})
+  return res.status(200).json({message:"All posts are deleted sucessfully"})
+} catch (error) {
+  return res.status(401).json({message:"Error during deleting posts"})
+}
+})
+app.delete("/delete/account", verifyJWT, async(req,res)=>{
+  const user = await User.findById(req.user.id)
+  if(!user){
+    return res.status(404).json({message:"invalid user access"})
+  }
+  try {
+    const user = await User.deleteMany({_id : req.user.id})
+    return res.status(200).json({message:"User is deleted sucessfully"})
+  } catch (error) {
+    return res.status(401).json({message:"Error during deleting user"})
+  }
+  })
+
+
+
+
+
+
 // Start the server and listen on port 3000
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
