@@ -315,6 +315,23 @@ app.post('/upload/post', verifyJWT, upload.single('image'), async (req, res) => 
     return res.status(400).json({ message: 'Internal server error', error });
   }
 });
+
+app.get("/post/:postId", async(req,res)=>{
+  try {
+    const {postId}= req.params;
+    const post = await Post.findById(postId)
+    const likeCount = await Like.countDocuments({postId});
+    const commentCount = await Comment.countDocuments({postId});
+    post.likeCount = likeCount
+    post.commentCount = commentCount
+    await post.save()
+    return res.status(200).json({message:"Post fetched sucessfully", post})
+  } catch (error) {
+    return res.status(400).json({message:"Internal server error", error})
+  }
+})
+
+
  // working  // checked with image and caption
 app.delete('/post/:id',verifyJWT,async(req,res)=>{
 try {
@@ -485,7 +502,6 @@ app.delete("/delete/account", verifyJWT, async(req,res)=>{
 app.post("/:postId/like", verifyJWT, async(req,res)=>{
 const {postId} = req.params;
 const isValid = await Post.findById(postId);
-console.log(isValid)
 if (!isValid){
   return res.status(404).json({message:"Post is not valid"})
 }
@@ -499,7 +515,8 @@ try {
   customTimestamp: Date.now()
     })
     await like.save()
-    return res.status(200).json({message:"Liked sucessfully", like})
+    const totalLike = await Like.countDocuments(postId)
+    return res.status(200).json({message:"Liked sucessfully", like, totalLike})
   }
   else{
     const unlike = await Like.findOneAndDelete({liker: req.user.id, postId});
@@ -528,7 +545,6 @@ try {
       comment,
       customTimestamp: Date.now()
     })
-    console.log(newComment)
     await newComment.save();
     return res.status(200).json({message:"Comment done sucessfully", newComment})
 } catch (error) {
@@ -564,7 +580,8 @@ app.get("/:postId/comments",  async(req,res)=>{
   if(!validPost){
     return res.status(404).json({message:"Post don't exit yet."})
   }
-  const comments = await Comment.find({postId:postId}).populate("liker");
+  const comments = await Comment.find({postId:postId}).populate("commentor").sort({ customTimestamp: -1 })
+  ;
   return res.status(200).json({message:"comments fetched sucessfully", comments})
 }) // working as expected
 
