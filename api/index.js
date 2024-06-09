@@ -8,6 +8,8 @@ import User from "../model/user.model.js"
 import Follow from '../model/follow.model.js';
 import Post from "../model/post.model.js"
 import Story from '../model/story.model.js';
+import Like from '../model/like.model.js';
+import Comment from '../model/comment.model.js';
 import upload from '../middleware/multer.js';
 import { validateSignup } from '../middleware/validateSignup.js';
 
@@ -383,8 +385,14 @@ app.post('/:user/follow',verifyJWT, async(req,res)=>{
  app.get('/suggestions/:count',verifyJWT, async(req,res)=>{
   
   const count  = parseInt(req.params.count) || 5;
-  const fetchUser = await User.find({ _id: { $ne: req.user.id } }).limit(count).sort({ createdAt: -1 });
-  return res.status(200).json({suggestions:fetchUser})
+  try {
+    const following = await Follow.find({ follower: req.user.id }).select('following');
+    const followingIds = following.map(f => f.following);
+    const fetchUser = await User.find({ _id: { $ne: req.user.id, $nin: followingIds } }).limit(count).sort({ createdAt: -1 });
+    return res.status(200).json({suggestions:fetchUser})
+  } catch (error) {
+    return res.status(400).json({message: "internal server error", error})
+  }
  });  // working
  app.post('/upload/story', verifyJWT, upload.single('image'), async(req,res)=>{
   try {
@@ -453,6 +461,115 @@ app.delete("/delete/account", verifyJWT, async(req,res)=>{
     return res.status(401).json({message:"Error during deleting user"})
   }
   })
+  app.delete("/suggestion/:userId/delete", verifyJWT, async (req, res) => {
+    const { userId } = req.params;
+  
+    try {
+      // Find and delete the follow suggestion
+      const deletedSuggestion = await Follow.findOneAndDelete({
+        follower: req.user.id,
+        following: userId,
+      });
+  
+      if (!deletedSuggestion) {
+        return res.status(404).json({ message: "User is not following you" });
+      }
+  
+      return res.status(200).json({ message: "User successfully removed from following list" });
+    } catch (error) {
+      console.error("Error deleting follow suggestion:", error);
+      return res.status(500).json({ message: "Internal server error",error });
+    }
+  });
+
+app.post("/:postId/like", verifyJWT, async(req,res)=>{
+const {postId} = req.params;
+const isValid = await Post.findById(postId);
+console.log(isValid)
+if (!isValid){
+  return res.status(404).json({message:"Post is not valid"})
+}
+try {
+  const alreadyLiked = await Like.findOne({liker: req.user.id, postId});
+  console.log(alreadyLiked)
+  if(!alreadyLiked){
+    const like = new Like({
+  postId,
+  liker:req.user.id,
+  customTimestamp: Date.now()
+    })
+    await like.save()
+    return res.status(200).json({message:"Liked sucessfully", like})
+  }
+  else{
+    const unlike = await Like.findOneAndDelete({liker: req.user.id, postId});
+    return res.status(200).json({message:"Unliked sucessfully", unlike})
+  
+  }
+} catch (error) {
+  console.log(error)
+  return res.status(400).json({message:"Internal error", error})
+}
+}) // working as expected
+app.post("/:postId/comment", verifyJWT, async(req,res)=>{
+  const {postId} = req.params;
+  const {comment}= req.body;
+  if (comment === " "){
+    return res.status(400).json({message:" Comment can't be empty"})
+  }
+  const validPost = await Post.findById(postId);
+  if(!validPost){
+    return res.status(404).json({message:"Post is not valid"})
+  }
+try {
+    const newComment = new Comment({
+      postId,
+      commentor:req.user.id,
+      comment,
+      customTimestamp: Date.now()
+    })
+    console.log(newComment)
+    await newComment.save();
+    return res.status(200).json({message:"Comment done sucessfully", newComment})
+} catch (error) {
+  return res.status(400).json({message:"Internal server error", error})
+}
+}) // working as expected
+app.delete("/:commentId/undocomment", verifyJWT, async(req,res)=>{
+  const {commentId} = req.params;
+  const verifiedId = await Comment.findById(commentId);
+  if(!verifiedId){
+    return res.status(404).json({message:"Comment don't exit yet."})
+  }
+  try {
+    const deletedComment = await Comment.findByIdAndDelete(commentId);
+    return res.status(200).json({message: "Comment deleted sucessfully", deletedComment})
+  } catch (error) {
+    return res.status(400).json({message:"Internal server error"})
+  }
+}) // working as expected
+app.get("/:postId/likes", async(req,res)=>{
+  const {postId} = req.params;
+  const validPost = await Post.findById(postId);
+  if(!validPost){
+    return res.status(404).json({message:"Post don't exit yet."})
+  }
+  const likes = await Like.find({postId}).populate("liker");
+  const likesList = likes.map((item)=> item.liker.email) // fetching names only for now.
+  return res.status(200).json({message:"Likes fetched sucessfully", likesList})
+}) // working as expected
+app.get("/:postId/comments",  async(req,res)=>{
+  const {postId} = req.params;
+  const validPost = await Post.findById(postId);
+  if(!validPost){
+    return res.status(404).json({message:"Post don't exit yet."})
+  }
+  const comments = await Comment.find({postId:postId}).populate("liker");
+  return res.status(200).json({message:"comments fetched sucessfully", comments})
+}) // working as expected
+
+
+
 
 
 

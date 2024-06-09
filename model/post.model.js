@@ -9,6 +9,10 @@ caption : {
     type: String, default : "",
 },
 customTimestamp:{type: Number, default :  Date.now()},
+likeCount: {type: Number, default : 0},
+commentCount: {type: Number, default : 0},
+accountReached: {type: Number, default : 0},
+
 
 
 })
