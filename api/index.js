@@ -348,13 +348,13 @@ try {
   return res.status(400).json({message:"internal server error"})
 }
 }) // working
-app.get('/posts', async (req, res) => {
+app.get('/posts/:count', async (req, res) => {
   // const { skip = 0, limit = 4 } = req.query;
-
+const count = req.params.count || 5
   try {
     const posts = await Post.find({})
       .populate('uploader', 'email profileImage') // Select specific user fields
-      .sort({ customTimestamp: -1 })
+      .sort({ customTimestamp: -1 }).limit(count);
       // .skip(Number(skip))
       // .limit(Number(limit));
 
@@ -498,7 +498,6 @@ app.delete("/delete/account", verifyJWT, async(req,res)=>{
       return res.status(500).json({ message: "Internal server error",error });
     }
   });
-
 app.post("/:postId/like", verifyJWT, async(req,res)=>{
 const {postId} = req.params;
 const isValid = await Post.findById(postId);
