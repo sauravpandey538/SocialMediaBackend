@@ -180,20 +180,21 @@ try {
   return res.status(400).json({message:"user couldn't find", error})
 }
 }) // working
-app.get('/:userId/profile', async (req, res) => {
-    try {
-        const { userId } = req.params;
+app.get('/:userId/profile', verifyJWT, async (req, res) => {
+  try {
+      let { userId } = req.params;
+  
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+          return res.status(400).json({ message: "Invalid userId" });
+      }
 
-        // Ensure userId is a valid ObjectId
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-            return res.status(400).json({ message: "Invalid userId" });
-        }
+      // Convert userId to ObjectId
+      const objectIdUserId = new mongoose.Types.ObjectId(userId);
+// console.log("User id is : " , userId);
+// console.log("objectUser id is : " , objectIdUserId)
 
-        // Convert userId to ObjectId
-        const objectIdUserId = new mongoose.Types.ObjectId(userId);
-
-        // Use Mongoose query chaining to populate the followers and following arrays
-        const users = await User.aggregate([
+      // Use Mongoose aggregation to populate the followers and following arrays
+      const users = await User.aggregate([
           {
               $match: { _id: objectIdUserId }
           },
@@ -234,34 +235,51 @@ app.get('/:userId/profile', async (req, res) => {
                   name: 1,
                   email: 1,
                   profileImage: 1,
-                  coverImage:1,
+                  coverImage: 1,
                   bio: 1,
                   followCount: { $size: "$followersList" },
                   followingCount: { $size: "$followingList" },
-                  "followers.email": { $arrayElemAt: ["$followerDetails.email", 0] },
-                  "followers.profileImage": { $arrayElemAt: ["$followerDetails.profileImage", 0] },
+                  followers: {
+                      email: "$followerDetails.email",
+                      profileImage: "$followerDetails.profileImage"
+                  },
                   following: {
-                      email: { $arrayElemAt: ["$followingDetails.email", 0] },
-                      profileImage: { $arrayElemAt: ["$followingDetails.profileImage", 0] }
+                      email: "$followingDetails.email",
+                      profileImage: "$followingDetails.profileImage"
                   }
               }
           }
       ]);
-      const posts = await Post.find({uploader:userId}).sort({customTimestamp :-1})
+
+      // Fetch posts and post count
+      const posts = await Post.find({ uploader: userId }).sort({ customTimestamp: -1 });
       const postCount = await Post.countDocuments({ uploader: userId });
-      
 
-        if (users.length === 0) {
-            return res.status(404).json({ message: "User not found", data: {} });
-        }
+      if (users.length === 0) {
+          return res.status(404).json({ message: "User not found", data: {} });
+      }
 
-        const user = users[0];
+      const user = users[0];
+    //  const thisUser = await User.findById(userId);
+     const isExist = await Follow.findOne({follower: req.user.id, following: userId})
 
-        return res.status(200).json({ message: "User fetched successfully", data: user, posts,postCount});
-    } catch (error) {
-        console.error("Error in fetching user profile:", error);
-        return res.status(500).json({ message: "Internal server error", error });
-    }
+if(! isExist && req.user.id === userId){
+  return res.status(200).json({ message: "This is my own profile", data: user,posts, postCount });
+
+}
+
+    else if(verifyJWT){
+      const isFollowing = isExist ? true : false;
+      return res.status(200).json({ message: "User fetched successfully", data: user, isFollowing,posts, postCount });
+     }
+else{
+  return res.status(200).json({ message: "User fetched successfully", data: user,posts, postCount });
+
+}
+  } catch (error) {
+      console.error("Error in fetching user profile:", error);
+      return res.status(500).json({ message: "Internal server error", error });
+  }
 }); // working
 app.patch('/update/password',verifyJWT, async(req,res)=>{
   const {newpassword,oldpassword} = req.body;
@@ -304,7 +322,7 @@ app.post('/upload/post', verifyJWT, upload.single('image'), async (req, res) => 
     const uploaderPP = user.profileImage;
     const post = await Post.create({
       uploader: req.user._id,
-      postImage: imageUrl.url,
+      postImage: imageUrl?.url || null,
       caption,
       uploaderPP,
       customTimestamp: Date.now()
@@ -348,18 +366,19 @@ try {
   return res.status(400).json({message:"internal server error"})
 }
 }) // working
-app.get('/posts/:count', async (req, res) => {
-  // const { skip = 0, limit = 4 } = req.query;
-const count = req.params.count || 5
+app.get('/posts', async (req, res) => {
+  const { page = 1, limit = 2 } = req.query; // Default to page 1 and limit 2 posts per page
   try {
     const posts = await Post.find({})
-      .populate('uploader', 'email profileImage') // Select specific user fields
-      .sort({ customTimestamp: -1 }).limit(count);
-      // .skip(Number(skip))
-      // .limit(Number(limit));
+      .populate('uploader', 'email profileImage') // Populate uploader field with specific user fields
+      .sort({ customTimestamp: -1 }) // Sort posts by custom timestamp in descending order
+      .skip((page - 1) * limit) // Skip appropriate number of posts based on page number and limit
+      .limit(parseInt(limit)); // Limit the number of posts fetched per page
+    
+    // Get the total count of posts
+    const totalPosts = await Post.countDocuments();
 
-    const totalPosts = await Post.countDocuments(); // Get total post count
-
+    // Return posts and total count as JSON response
     return res.status(200).json({ posts, totalPosts });
   } catch (error) {
     console.error(error);
