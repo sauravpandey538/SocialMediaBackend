@@ -43,7 +43,7 @@ app.use(bodyParser.json());
 
 
 // Define a route handler for the default home page
-app.get('/', (_, res) => {res.send('Hello, Express 3.0!');
+app.get('/', (req, res) => {res.send('Hello, Express 3.0!');
 });
 // app.post('/signup', validateSignup ,async(req,res)=>{
 //     const {email,password} = req.body;
