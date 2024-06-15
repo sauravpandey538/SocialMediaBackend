@@ -33,10 +33,9 @@ app.use(
     credentials: true, // Allow credentials (cookies)
   })
 );
-// app.use(express.json())
+app.use(express.json())
 app.use(cookieParser())
-// const urlencodedParser = bodyParser.urlencoded({ extended: false });
-// app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('./uploads'));
 app.use(bodyParser.json());
  app.use(bodyParser.urlencoded({ extended: true }));
