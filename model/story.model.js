@@ -6,8 +6,6 @@ const storySchema = new Schema({
         type:String,
         default:null
     },
-    createdAt: { type: Date, default: Date.now }
-
-});
+    createdAt: { type: Date, expires: 86400}});
  const Story = mongoose.model("Story", storySchema);
  export default Story;

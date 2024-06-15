@@ -20,7 +20,9 @@ const port = process.env.PORT;
 import mongoose from 'mongoose';
 import verifyJWT from '../middleware/token.middleware.js';
 import cors from "cors"
-mongoose.connect('mongodb://localhost:27017/socialMediaBackend')
+// mongoose.connect('mongodb://localhost:27017/socialMediaBackend')
+console.log(process.env.MONGO_ATLAS_URL)
+mongoose.connect(process.env.MONGO_ATLAS_URL)
 .then(()=>{console.log("Connected to mongoDB")})
 .catch((error)=>{console.log(" Error connecting to mongoDB", error)})
 
@@ -190,8 +192,7 @@ app.get('/:userId/profile', verifyJWT, async (req, res) => {
 
       // Convert userId to ObjectId
       const objectIdUserId = new mongoose.Types.ObjectId(userId);
-// console.log("User id is : " , userId);
-// console.log("objectUser id is : " , objectIdUserId)
+
 
       // Use Mongoose aggregation to populate the followers and following arrays
       const users = await User.aggregate([
@@ -356,7 +357,6 @@ try {
   const postId = req.params.id;
   const postUpoader = await Post.findById(postId);
   const loggedinUser = await User.findById(req.user.id)
-  console.log(postUpoader.uploader,loggedinUser._id) // same value
   if (postUpoader.uploader.toString() == loggedinUser._id.toString()){ // to string is mandatory
     const deletePost = await Post.findByIdAndDelete(postId);
     return res.status(200).json({message: "post deleted sucessfully", deletedPost: deletePost})
@@ -435,7 +435,6 @@ app.post('/:user/follow',verifyJWT, async(req,res)=>{
     const imageUrl = await uploadCloudinary(req.file?.path)
     // Fetch the user object using the user ID
     const user = await User.findById(req.user.id);
-console.log(user,req.file)
     // Ensure that the user object exists
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -524,8 +523,7 @@ if (!isValid){
   return res.status(404).json({message:"Post is not valid"})
 }
 try {
-  const alreadyLiked = await Like.findOne({liker: req.user.id, postId});
-  console.log(alreadyLiked)
+  const alreadyLiked = await Like.findOne({liker: req.user.id, postId}); // finds if it is in document . which mean it cheks whether it is already
   if(!alreadyLiked){
     const like = new Like({
   postId,
@@ -534,11 +532,11 @@ try {
     })
     await like.save()
     const totalLike = await Like.countDocuments(postId)
-    return res.status(200).json({message:"Liked sucessfully", like, totalLike})
+    return res.status(200).json({message:"Liked sucessfully", like, totalLike, isLiked : false})
   }
   else{
     const unlike = await Like.findOneAndDelete({liker: req.user.id, postId});
-    return res.status(200).json({message:"Unliked sucessfully", unlike})
+    return res.status(200).json({message:"Unliked sucessfully", unlike, isLiked :true})
   
   }
 } catch (error) {
@@ -582,7 +580,7 @@ app.delete("/:commentId/undocomment", verifyJWT, async(req,res)=>{
     return res.status(400).json({message:"Internal server error"})
   }
 }) // working as expected
-app.get("/:postId/likes", async(req,res)=>{
+app.get("/:postId/likes", verifyJWT, async(req,res)=>{
   const {postId} = req.params;
   const validPost = await Post.findById(postId);
   if(!validPost){
@@ -591,6 +589,7 @@ app.get("/:postId/likes", async(req,res)=>{
   const likes = await Like.find({postId}).populate("liker");
   const likesList = likes.map((item)=> item.liker.email) // fetching names only for now.
   return res.status(200).json({message:"Likes fetched sucessfully", likesList})
+  // isliked : true || false , problem solved...
 }) // working as expected
 app.get("/:postId/comments",  async(req,res)=>{
   const {postId} = req.params;
