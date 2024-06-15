@@ -20,6 +20,7 @@ const port = process.env.PORT;
 import mongoose from 'mongoose';
 import verifyJWT from '../middleware/token.middleware.js';
 import cors from "cors"
+import bodyParser from 'body-parser';
 // mongoose.connect('mongodb://localhost:27017/socialMediaBackend')
 console.log(process.env.MONGO_ATLAS_URL)
 mongoose.connect(process.env.MONGO_ATLAS_URL)
@@ -32,10 +33,14 @@ app.use(
     credentials: true, // Allow credentials (cookies)
   })
 );
-app.use(express.json())
+// app.use(express.json())
 app.use(cookieParser())
-app.use(express.urlencoded({ extended: true }));
+// const urlencodedParser = bodyParser.urlencoded({ extended: false });
+// app.use(express.urlencoded({ extended: true }));
 app.use(express.static('./uploads'));
+app.use(bodyParser.json());
+ app.use(bodyParser.urlencoded({ extended: true }));
+
 
 // Define a route handler for the default home page
 app.get('/', (_, res) => {res.send('Hello, Express 3.0!');
