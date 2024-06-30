@@ -29,7 +29,7 @@ mongoose.connect(process.env.MONGO_ATLAS_URL)
 
 app.use(
   cors({
-    origin: "http://localhost:5173", // Allow requests from your frontend URL
+    origin: "https://social-media-frontend-sage.vercel.app", // Allow requests from your frontend URL
     credentials: true, // Allow credentials (cookies)
   })
 );
