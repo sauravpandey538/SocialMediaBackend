@@ -84,7 +84,7 @@ app.post("/login", async (req, res) => {
   
       const options = {
         httpOnly: true,
-        secure: ture, 
+        secure: true, 
         sameSite:'None'
       };
   
