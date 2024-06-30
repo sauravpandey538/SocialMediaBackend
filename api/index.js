@@ -40,7 +40,7 @@ app.use(express.static('./uploads'));
 // app.use(bodyParser.json());
 //  app.use(bodyParser.urlencoded({ extended: true }));
 
-
+//hello
 // Define a route handler for the default home page
 app.get('/', (req, res) => {res.send('Hello, Express 3.0!');
 });
