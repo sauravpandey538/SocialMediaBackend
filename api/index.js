@@ -86,7 +86,7 @@ app.post("/login", async (req, res) => {
         httpOnly: true,
         secure: false, // changing to true gives problem to store cookie in mobile
         maxAge: 24 * 60 * 60 * 1000,
-        sameSite:'None'
+        sameSite:'Lax'
         // path: '/api' // 24 hours
       };
   
