@@ -21,16 +21,15 @@ import mongoose from 'mongoose';
 import verifyJWT from '../middleware/token.middleware.js';
 import cors from "cors"
 import bodyParser from 'body-parser';
-// mongoose.connect('mongodb://localhost:27017/socialMediaBackend')
-// console.log(process.env.MONGO_ATLAS_URL)
+
 mongoose.connect(process.env.MONGO_ATLAS_URL)
 .then(()=>{console.log("Connected to mongoDB")})
 .catch((error)=>{console.log(" Error connecting to mongoDB", error)})
 
 app.use(
   cors({
-    origin: "https://social-media-frontend-sage.vercel.app", // Allow requests from your frontend URL
-    credentials: true, // Allow credentials (cookies)
+    origin: "https://social-media-frontend-sage.vercel.app", 
+    credentials: true, 
   })
 );
 app.use(express.json())
@@ -84,8 +83,8 @@ app.post("/login", async (req, res) => {
       await existingUser.save();
   
       const options = {
-        httpOnly: false,
-        secure: false,
+        httpOnly: true,
+        secure: true,
         maxAge: 24 * 60 * 60 * 1000,
         // path: '/api' // 24 hours
       };
