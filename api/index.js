@@ -85,7 +85,6 @@ app.post("/login", async (req, res) => {
       const options = {
         httpOnly: true,
         secure: true, 
-        sameSite:'None',
         path:'/',
         domain:'https://social-media-frontend-sage.vercel.app'
       };
@@ -605,14 +604,6 @@ app.get("/:postId/comments",  async(req,res)=>{
   ;
   return res.status(200).json({message:"comments fetched sucessfully", comments})
 }) // working as expected
-
-
-
-
-
-
-
-
 
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
