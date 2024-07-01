@@ -85,7 +85,9 @@ app.post("/login", async (req, res) => {
       const options = {
         httpOnly: true,
         secure: true, 
-        sameSite:'None'
+        sameSite:'None',
+        path:'/',
+        domain:'https://social-media-frontend-sage.vercel.app'
       };
   
       res
